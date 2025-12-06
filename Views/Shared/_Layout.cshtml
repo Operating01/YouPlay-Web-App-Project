@@ -1,0 +1,220 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@inject SignInManager<Account> SignInManager
+@inject UserManager<Account> UserManager
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Project</title>
+    <script type="importmap"></script>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Project.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+</head>
+<body>
+
+<!-- Header and navigation bar -->
+<header>
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <div class="container-fluid">
+
+            <!-- Brand link -->
+            <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Project</a>
+
+            <!-- Navbar toggle for smaller screens -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+                    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Collapsible navbar content -->
+            <div class="navbar-collapse collapse">
+
+                <!-- Primary navigation links -->
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                    </li>
+                </ul>
+
+                <!-- Search bar section -->
+                <div class="d-flex mx-auto" style="max-width: 400px; width: 100%;">
+                    <input type="text" id="SongSearch" class="form-control me-2" placeholder="Search...">
+                    <button class="btn btn-primary" type="button" id="searchButton">
+                        <i class="bi bi-search"></i> <!-- icon for search -->
+                    </button>
+                </div>
+
+                <!-- Spacer for alignment -->
+                <div class="ms-auto" style="width: 100px;"></div>
+
+            </div>
+        </div>
+
+        <!-- User login section -->
+        <div class="navbar-nav ms-auto">
+            <partial name="_LoginPartial" />
+        </div>
+    </nav>
+</header>
+
+<!-- Search results overlay -->
+<div id="searchResults" style="
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 600px;
+    width: 90%;
+    max-height: 500px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1050;
+    padding: 10px;
+"></div>
+
+<!-- Main content container -->
+<div class="container">
+    <main role="main" class="pb-3">
+        @RenderBody()
+    </main>
+</div>
+
+<!-- Footer player controls -->
+<footer class="border-top footer text-muted bg-danger fixed-bottom">
+    <div class="d-flex align-items-center justify-content-between px-3">
+
+        <!-- Copyright and privacy link -->
+        <div>
+            &copy; 2025 - Project - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+
+        <!-- Playback controls -->
+        <div class="d-flex gap-2 align-items-center">
+            <button id="prevButton" class="btn btn-sm btn-light" title="Previous">
+                <i class="bi bi-skip-start-fill"></i> <!-- previous icon -->
+            </button>
+
+            <i class="bi bi-play-fill fs-3" id="playButton" style="cursor: pointer;"></i> <!-- play icon -->
+
+            <button id="nextButton" class="btn btn-sm btn-light" title="Next">
+                <i class="bi bi-skip-end-fill"></i> <!-- next icon -->
+            </button>
+
+            <button id="queueButton" class="btn btn-sm btn-light ms-3" title="View Queue">
+                <i class="bi bi-list-ul"></i> <!-- queue icon -->
+            </button>
+        </div>
+
+        <!-- Right side spacer -->
+        <div style="width: 200px;"></div>
+    </div>
+</footer>
+
+<!-- Create playlist modal (Hidden until called by DOM manipulator)-->
+<div class="modal fade" id="createPlaylistModal" tabindex="-1" aria-labelledby="createPlaylistModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <!-- Modal header -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="createPlaylistModalLabel">Create New Playlist</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body">
+                <form id="createPlaylistForm">
+
+                    <!-- Playlist name input -->
+                    <div class="mb-3">
+                        <label for="playlistTitle" class="form-label">Playlist Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="playlistTitle" name="playlistTitle" required placeholder="My Awesome Playlist">
+                    </div>
+
+                    <!-- Playlist cover art input -->
+                    <div class="mb-3">
+                        <label for="playlistArtUrl" class="form-label">Cover Art URL</label>
+                        <input type="url" class="form-control" id="playlistArtUrl" name="playlistArtUrl" placeholder="">
+                        <div class="form-text">Enter a URL to an image for your playlist cover</div>
+                    </div>
+
+                    <!-- Cover art preview -->
+                    <div id="artPreview" class="mb-3" style="display: none;">
+                        <label class="form-label">Preview:</label>
+                        <div style="width: 150px; height: 150px; border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden;">
+                            <img id="artPreviewImg" src="" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Modal footer -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="savePlaylistBtn">Create Playlist</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Queue modal (Hidden until called by DOM manipulator) -->
+<div class="modal fade" id="queueModal" tabindex="-1" aria-labelledby="queueModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <!-- Modal header -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="queueModalLabel">
+                    Queue
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal body for queue items -->
+            <div class="modal-body" id="queueModalBody">
+                <!-- Queue items will be rendered dynamically with DOM elements -->
+            </div>
+
+            <!-- Modal footer with queue actions -->
+            <div class="modal-footer">
+                <button id="shuffleQueueBtn" class="btn btn-outline-primary">Shuffle</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button id="clearQueueBtn" class="btn btn-outline-danger">Clear Queue</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden player container -->
+<div id="player" style="display: none"></div>
+
+<!-- Sidebar partial -->
+<partial name="../Shared/_Sidebar.cshtml" />
+
+<!-- Scripts -->
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/YouTube.js"></script>
+<script src="~/js/QueueManager.js" type="module"></script>
+<script src="~/js/MainDOMManip.js"></script>
+
+<!-- Pass current user id to JS -->
+<script>
+    window.currentUserId = '@User.FindFirstValue(ClaimTypes.NameIdentifier)';
+</script>
+
+@await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>
