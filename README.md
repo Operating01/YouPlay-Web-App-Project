@@ -21,5 +21,5 @@ This app adhears to many visual and text based accessibility protocols, includin
 <li>Search functionality done with keyboard</li>
 <li>Easy-to-understand functionality for creating and updating playlists</li>
 <li>Predictable design</li>
-<li></li>
+<li>No major flashes or changes that would impede on readability</li>
 
